@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Chat Privado</title>
+
+<style>
+body {
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.container {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding:20px;
+    box-sizing:border-box;
+}
+
+.card {
+    background: #1e293b;
+    padding:24px;
+    border-radius:16px;
+    width:min(95vw, 450px);
+    box-shadow: 0 0 25px rgba(0,0,0,0.35);
+}
+
+.title {
+    margin:0 0 8px 0;
+}
+
+.subtitle {
+    margin:0 0 16px 0;
+    color:#94a3b8;
+    font-size:14px;
+}
+
+.tabs {
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+}
+
+.tabBtn {
+    margin:0;
+    background:#0f172a;
+    border:1px solid #334155;
+}
+
+.tabBtn.active {
+    background:#3b82f6;
+    border-color:#3b82f6;
+}
+
+.authForm {
+    display:none;
+}
+
+.authForm.active {
+    display:block;
+}
+
+input {
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border-radius:8px;
+    border:none;
+    outline:none;
+    background:#0f172a;
+    color:white;
+}
+
+/* BOTONES */
+button {
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border-radius:8px;
+    border:none;
+    background:#3b82f6;
+    color:white;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+button:hover {
+    background:#2563eb;
+}
+
+#chatBox {
+    width:min(95vw, 980px);
+    height:min(88vh, 760px);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.chatHeader {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.profile {
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+#messages {
+    flex:1;
+    overflow-y:auto;
+    background:#0f172a;
+    border-radius:10px;
+    padding:14px;
+}
+
+.message {
+    display:flex;
+    align-items:flex-start;
+    margin-bottom:10px;
+}
+
+.avatar {
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    margin-right:10px;
+    object-fit:cover;
+}
+
+.msgContent {
+    background:#334155;
+    padding:10px 14px;
+    border-radius:10px;
+    max-width:75%;
+    word-break:break-word;
+}
+
+.username {
+    font-size:12px;
+    color:#94a3b8;
+}
+
+.chatInput {
+    display:flex;
+    gap:8px;
+}
+
+.chatInput input {
+    margin-top:0;
+    flex:1;
+}
+
+.chatInput button {
+    margin-top:0;
+    width:70px;
+}
+
+.muted {
+    color:#94a3b8;
+    font-size:13px;
+    margin-top:10px;
+}
+
+.adminPanel {
+    background:#0f172a;
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:8px;
+}
+
+.requestItem {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:#1e293b;
+    border:1px solid #334155;
+    border-radius:8px;
+    padding:8px;
+    margin-top:8px;
+}
+
+.requestActions {
+    display:flex;
+    gap:6px;
+}
+
+.smallBtn {
+    width:auto;
+    margin:0;
+    padding:6px 10px;
+}
+
+.sendRow {
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+
+.sendRow input[type="file"] {
+    margin-top:0;
+    padding:8px;
+}
+
+.notifyBtn {
+    width:auto;
+    margin:0;
+    padding:8px 12px;
+    background:#0f172a;
+    border:1px solid #334155;
+}
+
+.notifyBtn.enabled {
+    background:#16a34a;
+    border-color:#16a34a;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<div class="card" id="authCard">
+    <h2 class="title">🔐 Chat Privado</h2>
+    <p class="subtitle">Regístrate una vez. Luego solo inicias con usuario y contraseña.</p>
+
+    <div class="tabs">
+        <button class="tabBtn active" id="showLoginBtn" onclick="showTab('login')">Iniciar sesión</button>
+        <button class="tabBtn" id="showRegisterBtn" onclick="showTab('register')">Registrarse</button>
+    </div>
+
+    <div id="loginForm" class="authForm active">
+        <input id="loginUsername" placeholder="Username" autocomplete="username">
+        <input id="loginPassword" type="password" placeholder="Contraseña" autocomplete="current-password">
+        <button onclick="login()">Entrar</button>
+    </div>
+
+    <div id="registerForm" class="authForm">
+        <input id="registerUsername" placeholder="Username nuevo" autocomplete="username">
+        <input id="registerAvatar" placeholder="URL avatar (opcional)">
+        <input id="registerPassword" type="password" placeholder="Contraseña" autocomplete="new-password">
+        <button onclick="registerUser()">Crear cuenta</button>
+        <div class="muted">El avatar se guarda solo una vez al registrarte.</div>
+    </div>
+</div>
+
+<!-- CHAT -->
+<div class="card" id="chatBox" style="display:none;">
+    <div class="chatHeader">
+        <div class="profile">
+            <img id="myAvatarImg" class="avatar" src="https://i.imgur.com/4M34hi2.png">
+            <div>
+                <div class="username">Conectado como</div>
+                <div id="myUsernameText"></div>
+            </div>
+        </div>
+        <button id="notifyBtn" class="notifyBtn" onclick="enableNotifications()">Activar notificaciones</button>
+    </div>
+
+    <div id="adminPanel" class="adminPanel" style="display:none;">
+        <div><strong>Solicitudes pendientes</strong></div>
+        <div id="pendingList" class="muted">No hay solicitudes.</div>
+    </div>
+
+    <div id="messages"></div>
+
+    <div class="chatInput">
+        <input id="msg" placeholder="Escribe un mensaje...">
+        <button onclick="send()">➤</button>
+    </div>
+
+    <div class="sendRow">
+        <input id="mediaFile" type="file" accept="image/*,video/*">
+        <button style="width:140px;margin-top:0;" onclick="sendMedia()">Enviar archivo</button>
+    </div>
+</div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const DEFAULT_AVATAR = "https://i.imgur.com/4M34hi2.png";
+const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
+
+const authCard = document.getElementById("authCard");
+const chatBox = document.getElementById("chatBox");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const showLoginBtn = document.getElementById("showLoginBtn");
+const showRegisterBtn = document.getElementById("showRegisterBtn");
+const loginUsername = document.getElementById("loginUsername");
+const loginPassword = document.getElementById("loginPassword");
+const registerUsername = document.getElementById("registerUsername");
+const registerAvatar = document.getElementById("registerAvatar");
+const registerPassword = document.getElementById("registerPassword");
+const myUsernameText = document.getElementById("myUsernameText");
+const myAvatarImg = document.getElementById("myAvatarImg");
+const adminPanel = document.getElementById("adminPanel");
+const pendingList = document.getElementById("pendingList");
+const messages = document.getElementById("messages");
+const msg = document.getElementById("msg");
+const mediaFile = document.getElementById("mediaFile");
+const notifyBtn = document.getElementById("notifyBtn");
+
+let myUser = "";
+let myAvatar = "";
+let myRole = "user";
+let isAuthenticated = false;
+
+function updateNotificationButton() {
+    if (!("Notification" in window)) {
+        notifyBtn.textContent = "Notificaciones no soportadas";
+        notifyBtn.disabled = true;
+        return;
+    }
+
+    const state = Notification.permission;
+    if (state === "granted") {
+        notifyBtn.textContent = "Notificaciones activas";
+        notifyBtn.classList.add("enabled");
+    } else if (state === "denied") {
+        notifyBtn.textContent = "Notificaciones bloqueadas";
+    } else {
+        notifyBtn.textContent = "Activar notificaciones";
+    }
+}
+
+async function enableNotifications() {
+    if (!("Notification" in window)) {
+        alert("Tu navegador no soporta notificaciones");
+        return;
+    }
+
+    const permission = await Notification.requestPermission();
+    updateNotificationButton();
+
+    if (permission === "granted") {
+        alert("Notificaciones activadas ✅");
+    }
+}
+
+function showTab(tab) {
+    const isLogin = tab === "login";
+    loginForm.classList.toggle("active", isLogin);
+    registerForm.classList.toggle("active", !isLogin);
+    showLoginBtn.classList.toggle("active", isLogin);
+    showRegisterBtn.classList.toggle("active", !isLogin);
+}
+
+function registerUser() {
+    socket.emit("register", {
+        username: registerUsername.value,
+        avatar: registerAvatar.value,
+        password: registerPassword.value
+    });
+}
+
+function login() {
+    socket.emit("login", {
+        username: loginUsername.value,
+        password: loginPassword.value
+    });
+}
+
+socket.on("registerPending", (data) => {
+    alert(data.message || "Solicitud enviada");
+    loginUsername.value = data.username || "";
+    loginPassword.value = "";
+    showTab("login");
+});
+
+socket.on("authSuccess", (data) => {
+    myUser = data.username;
+    myAvatar = data.avatar || DEFAULT_AVATAR;
+    myRole = data.role || "user";
+
+    localStorage.setItem("lastUsername", myUser);
+
+    authCard.style.display = "none";
+    chatBox.style.display = "flex";
+    myUsernameText.textContent = myUser;
+    myAvatarImg.src = myAvatar;
+
+    if (myRole === "admin") {
+        adminPanel.style.display = "block";
+    } else {
+        adminPanel.style.display = "none";
+    }
+
+    isAuthenticated = true;
+
+    msg.focus();
+});
+
+socket.on("disconnect", () => {
+    if (!isAuthenticated) return;
+
+    isAuthenticated = false;
+    alert("Se perdió la conexión. Inicia sesión nuevamente.");
+    chatBox.style.display = "none";
+    authCard.style.display = "block";
+    showTab("login");
+});
+
+socket.on("connect_error", () => {
+    alert("Error de conexión con el servidor");
+});
+
+function renderMessage(data) {
+    const div = document.createElement("div");
+    div.className = "message";
+
+    let contentHtml = "";
+
+    if (data.type === "image" && data.mediaUrl) {
+        contentHtml = `<div class="msgContent"><img src="${data.mediaUrl}" style="max-width:360px;max-height:280px;border-radius:8px;"></div>`;
+    } else if (data.type === "video" && data.mediaUrl) {
+        contentHtml = `<div class="msgContent"><video src="${data.mediaUrl}" controls style="max-width:360px;max-height:280px;border-radius:8px;"></video></div>`;
+    } else {
+        contentHtml = `<div class="msgContent">${data.text || ""}</div>`;
+    }
+
+    div.innerHTML = `
+        <img class="avatar" src="${data.avatar || 'https://i.imgur.com/4M34hi2.png'}">
+        <div>
+            <div class="username">${data.user}</div>
+            ${contentHtml}
+        </div>
+    `;
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+socket.on("chatHistory", (history) => {
+    messages.innerHTML = "";
+
+    if (!Array.isArray(history)) return;
+    history.forEach(renderMessage);
+});
+
+socket.on("message", (data) => {
+    renderMessage(data);
+
+    if (!isAuthenticated) return;
+    if (!data || data.user === myUser) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible") return;
+
+    const preview = data.type === "image"
+        ? "📷 Imagen"
+        : data.type === "video"
+            ? "🎥 Video"
+            : (data.text || "Nuevo mensaje");
+
+    new Notification(`Nuevo mensaje de ${data.user}`, {
+        body: preview,
+        icon: data.avatar || DEFAULT_AVATAR,
+        badge: data.avatar || DEFAULT_AVATAR
+    });
+});
+
+socket.on("pendingRequests", (requests) => {
+    if (myRole !== "admin") return;
+
+    if (!Array.isArray(requests) || requests.length === 0) {
+        pendingList.innerHTML = "<span class='muted'>No hay solicitudes.</span>";
+        return;
+    }
+
+    pendingList.innerHTML = "";
+
+    requests.forEach((req) => {
+        const item = document.createElement("div");
+        item.className = "requestItem";
+        item.innerHTML = `
+            <div>
+                <div><strong>${req.username}</strong></div>
+                <div class="muted">Solicitó acceso al chat</div>
+            </div>
+            <div class="requestActions">
+                <button class="smallBtn" onclick="reviewRequest('${req.username}', 'approve')">Aceptar</button>
+                <button class="smallBtn" style="background:#ef4444;" onclick="reviewRequest('${req.username}', 'reject')">Rechazar</button>
+            </div>
+        `;
+        pendingList.appendChild(item);
+    });
+});
+
+socket.on("requestReviewed", (data) => {
+    if (data.status === "approved") {
+        alert(`✅ ${data.username}: aprobado por ${data.by}. Ya puedes iniciar sesión.`);
+    } else {
+        alert(`❌ ${data.username}: solicitud rechazada por ${data.by}.`);
+    }
+});
+
+function send() {
+    if (!isAuthenticated) {
+        alert("No estás autenticado. Inicia sesión.");
+        return;
+    }
+
+    if (!msg.value) return;
+
+    socket.emit("sendMessage", msg.value);
+    msg.value = "";
+}
+
+function sendMedia() {
+    if (!isAuthenticated) {
+        alert("No estás autenticado. Inicia sesión.");
+        return;
+    }
+
+    const file = mediaFile.files[0];
+    if (!file) {
+        alert("Selecciona una imagen o video");
+        return;
+    }
+
+    if (file.size > MAX_MEDIA_BYTES) {
+        alert("Archivo demasiado pesado (máx 25MB)");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => {
+        alert("No se pudo leer el archivo");
+    };
+    reader.onload = () => {
+        socket.emit("sendMedia", {
+            dataUrl: reader.result,
+            fileName: file.name
+        });
+    };
+    reader.readAsDataURL(file);
+    mediaFile.value = "";
+}
+
+function reviewRequest(username, action) {
+    socket.emit("reviewRequest", { username, action });
+}
+
+msg.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") send();
+});
+
+socket.on("errorMsg", (msg) => {
+    alert(msg);
+});
+
+const rememberedUser = localStorage.getItem("lastUsername");
+if (rememberedUser) {
+    loginUsername.value = rememberedUser;
+}
+
+loginPassword.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") login();
+});
+
+registerPassword.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") registerUser();
+});
+
+updateNotificationButton();
+</script>
+
+</body>
+</html>
