@@ -363,6 +363,51 @@ io.on("connection", (socket) => {
         }
     });
 
+    socket.on("setRole", ({ username, role }) => {
+        const admin = onlineUsers[socket.id];
+        if (!admin || admin.role !== "admin") {
+            socket.emit("errorMsg", "No autorizado");
+            return;
+        }
+
+        const targetKey = normalizeUsername((username || "").trim());
+        const targetUser = registeredUsers[targetKey];
+
+        if (!targetUser) {
+            socket.emit("errorMsg", "Usuario no encontrado");
+            return;
+        }
+
+        if (targetKey === normalizeUsername(admin.username)) {
+            socket.emit("errorMsg", "No puedes cambiar tu propio rol");
+            return;
+        }
+
+        const newRole = role === "admin" ? "admin" : "user";
+        targetUser.role = newRole;
+        saveRegisteredUsers(registeredUsers);
+
+        socket.emit("roleChanged", { username: targetUser.username, role: newRole });
+
+        // Actualizar onlineUsers si está conectado
+        for (const [sid, u] of Object.entries(onlineUsers)) {
+            if (normalizeUsername(u.username) === targetKey) {
+                onlineUsers[sid].role = newRole;
+            }
+        }
+    });
+
+    socket.on("getUsers", () => {
+        const admin = onlineUsers[socket.id];
+        if (!admin || admin.role !== "admin") return;
+
+        const list = Object.values(registeredUsers)
+            .filter((u) => u.status === "approved")
+            .map((u) => ({ username: u.username, role: u.role, avatar: u.avatar || DEFAULT_AVATAR }));
+
+        socket.emit("usersList", list);
+    });
+
     socket.on("sendMessage", (msg) => {
         const user = onlineUsers[socket.id];
 

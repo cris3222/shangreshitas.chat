@@ -267,8 +267,16 @@ button:hover {
     </div>
 
     <div id="adminPanel" class="adminPanel" style="display:none;">
-        <div><strong>Solicitudes pendientes</strong></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong>Solicitudes pendientes</strong>
+            <button class="smallBtn" onclick="toggleUserManager()">👥 Gestionar usuarios</button>
+        </div>
         <div id="pendingList" class="muted">No hay solicitudes.</div>
+
+        <div id="userManager" style="display:none;margin-top:10px;">
+            <div><strong>Usuarios aprobados</strong></div>
+            <div id="usersList" class="muted">Cargando...</div>
+        </div>
     </div>
 
     <div id="messages"></div>
@@ -552,6 +560,54 @@ function sendMedia() {
 function reviewRequest(username, action) {
     socket.emit("reviewRequest", { username, action });
 }
+
+let userManagerOpen = false;
+
+function toggleUserManager() {
+    userManagerOpen = !userManagerOpen;
+    document.getElementById("userManager").style.display = userManagerOpen ? "block" : "none";
+    if (userManagerOpen) {
+        socket.emit("getUsers");
+    }
+}
+
+socket.on("usersList", (list) => {
+    const el = document.getElementById("usersList");
+    if (!Array.isArray(list) || list.length === 0) {
+        el.innerHTML = "<span class='muted'>No hay usuarios aprobados.</span>";
+        return;
+    }
+
+    el.innerHTML = "";
+    list.forEach((u) => {
+        const item = document.createElement("div");
+        item.className = "requestItem";
+        const isAdmin = u.role === "admin";
+        item.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;">
+                <img class="avatar" src="${u.avatar}" style="width:28px;height:28px;">
+                <div>
+                    <strong>${u.username}</strong>
+                    <span style="margin-left:6px;font-size:11px;color:${isAdmin ? '#f59e0b' : '#94a3b8'};">${isAdmin ? '⭐ Admin' : 'Usuario'}</span>
+                </div>
+            </div>
+            <div class="requestActions">
+                ${u.username !== myUser ? `<button class="smallBtn" style="background:${isAdmin ? '#ef4444' : '#f59e0b'};" onclick="setRole('${u.username}', '${isAdmin ? 'user' : 'admin'}')">${ isAdmin ? 'Quitar admin' : 'Hacer admin'}</button>` : '<span class="muted">Tú</span>'}
+            </div>
+        `;
+        el.appendChild(item);
+    });
+});
+
+function setRole(username, role) {
+    if (!confirm(`¿Seguro que quieres cambiar el rol de ${username} a ${role}?`)) return;
+    socket.emit("setRole", { username, role });
+}
+
+socket.on("roleChanged", ({ username, role }) => {
+    alert(`✅ ${username} ahora es ${role === 'admin' ? 'Admin ⭐' : 'Usuario'}`);
+    socket.emit("getUsers");
+});
 
 msg.addEventListener("keypress", (e) => {
     if (e.key === "Enter") send();
