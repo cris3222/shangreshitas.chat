@@ -11,15 +11,26 @@ const io = new Server(server, {
     maxHttpBufferSize: 30 * 1024 * 1024
 });
 const PORT = process.env.PORT || 55000;
-const USERS_FILE = path.join(__dirname, "users.json");
-const HISTORY_FILE = path.join(__dirname, "chat_history.txt");
-const UPLOADS_DIR = path.join(__dirname, "public", "uploads");
+
+// DATA_DIR permite apuntar a disco persistente en Render (/var/data)
+// En local usa la carpeta del proyecto
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const HISTORY_FILE = path.join(DATA_DIR, "chat_history.txt");
+const UPLOADS_DIR = process.env.DATA_DIR
+    ? path.join(DATA_DIR, "uploads")
+    : path.join(__dirname, "public", "uploads");
 const DEFAULT_AVATAR = "https://i.imgur.com/4M34hi2.png";
 const MAX_HISTORY_MESSAGES = 500;
 const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
 
 app.use(express.static("public"));
 app.use("/uploads", express.static(UPLOADS_DIR));
+
+// Si DATA_DIR es externo, servir uploads desde ahí también
+if (process.env.DATA_DIR) {
+    app.use("/uploads", express.static(path.join(process.env.DATA_DIR, "uploads")));
+}
 
 app.get(["/", "/index.html", "/chat.html", "/admin.html"], (_req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
